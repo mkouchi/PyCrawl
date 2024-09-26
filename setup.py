@@ -16,6 +16,7 @@ setup(
         'beautifulsoup4',
         'newspaper3k',
         'lxml',
+        'nltk',
     ],
     entry_points={
         'console_scripts': [
