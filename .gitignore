@@ -5,4 +5,7 @@ venv/
 data/
 *.log
 
+project_structure.txt
+notes.md
+
 myenv/
