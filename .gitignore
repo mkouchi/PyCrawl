@@ -5,6 +5,7 @@ venv/
 data/
 *.log
 
+site-crawler.py
 project_structure.txt
 notes.md
 
