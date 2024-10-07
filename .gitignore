@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.env
+venv/
+data/
+*.log
+
+project_structure.txt
+notes.md
+
+scrapes/
+myenv/
+ignoredfiles/
