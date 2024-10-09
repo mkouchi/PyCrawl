@@ -7,7 +7,7 @@ from newspaper import Article
 import time
 import signal
 import logging
-from crawler_utils import is_allowed, get_sitemap_urls, parse_sitemap, parse_sitemap_index
+from crawler_utils import fetch_and_parse_robots_txt, fetch_and_parse_sitemaps
 
 DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
 # Custom headers including a User-Agent
@@ -219,76 +219,32 @@ def crawl_website(start_url, depth):
 def main():
     # Starting URL and depth for the crawler
     start_url =  "https://news.bahai.org/" #"https://www.radiozamaneh.com/" "https://universalhouseofjustice.bahai.org/" # "https://www.bahaisofiran.org/" # "https://news.persian-bahai.org/" #  "https://www.bahaisofiran.org/" "https://universalhouseofjustice.bahai.org/" # "https://bahaiworld.bahai.org/" # "https://www.bahaisofiran.org/" # "https://news.persian-bahai.org/" # "https://www.hra-news.org/" #  # "https://news.bahai.org/fa/"
-    max_depth = 5  # Adjust the depth as needed
+    max_depth = 3  # Adjust the depth as needed
 
-    # Check for sitemap at robots.txt URL
-    sitemap_urls = get_sitemap_urls(start_url, DEFAULT_USER_AGENT)
-    if sitemap_urls:
-        logging.info(f"Using sitemap to get URLs for {start_url}")
-        for sitemap_url in sitemap_urls:
-            urls_to_crawl = parse_sitemap_index(sitemap_url)
-            urls_to_crawl = parse_sitemap(sitemap_url)
-            for url in urls_to_crawl:
-                # Crawl each URL individually
-                documents = scrape_url(
-                    url=url,
-                    headers=headers,
-                    delay=config.delay
-                )
-                # Process documents...
-    else:
-        # Fall back to recursive crawling
-        documents = scrape_website(
-            url=start_url,
-            depth=0,
-            max_depth=config.max_depth,
-            headers=headers,
-            delay=config.delay
-        )
-    """ 
-    def main():
-    from crawler.utils import setup_logging, create_directories
-    from crawler.config import DEFAULT_USER_AGENT
-    import logging
+    parsed_start_url = urlparse(start_url)
+    base_url = f"{parsed_start_url.scheme}://{parsed_start_url.netloc}"
 
-    setup_logging()
-    create_directories()
+    logging.info(f"Starting to crawl {base_url}")
 
-    headers = {'User-Agent': DEFAULT_USER_AGENT}
+    # Fetch and parse robots.txt
+    rp, sitemap_urls = fetch_and_parse_robots_txt(base_url, DEFAULT_USER_AGENT)
 
-    # For each site in your Site enum
-    for site in Site:
-        config = site.value
-        start_url = config.url
-        delay = config.delay
+    if not sitemap_urls:
+        # If no sitemap URLs found, you might decide to proceed with recursive crawling
+        logging.info(f"No sitemap URLs found for {base_url}. Proceeding with recursive crawling.")
+        crawl_website(start_url, max_depth)
 
-        logging.info(f"Starting to scrape {start_url}")
+    # Fetch and parse sitemaps to get URLs to crawl
+    urls_to_crawl = fetch_and_parse_sitemaps(sitemap_urls, DEFAULT_USER_AGENT)
 
-        # Get sitemap URLs from robots.txt or use the provided sitemap URL
-        sitemap_index_url = 'http://example.org/sitemap_index.xml'  # Replace with actual URL
-        sitemap_urls = parse_sitemap_index(sitemap_index_url)
+    # Crawl the URLs
+    for url in urls_to_crawl:
+        # Check if URL is allowed by robots.txt
+        if rp is None or rp.can_fetch(DEFAULT_USER_AGENT, url):
+            time.sleep(delay)
+            articles_content = scrape_url(url, headers, delay)
 
-        all_urls_to_crawl = []
-        for sitemap_url in sitemap_urls:
-            urls = parse_sitemap(sitemap_url)
-            all_urls_to_crawl.extend(urls)
-
-        # Crawl the URLs
-        for url in all_urls_to_crawl:
-            if is_allowed(url, user_agent=DEFAULT_USER_AGENT):
-                time.sleep(delay)
-                documents = scrape_url(url, headers, delay)
-                # Process documents...
-            else:
-                logging.info(f"Skipping disallowed URL: {url}")
-
-    # Further processing...
-
-
-     
-       """
-
-    crawl_website(start_url, max_depth)
+    
 
     if not articles_content:
         logging.error("No articles were scraped. Exiting.")
