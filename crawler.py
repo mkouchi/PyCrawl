@@ -216,6 +216,33 @@ def crawl_website(start_url, depth):
     # After finishing the crawl, print all crawled URLs
     print_crawled_contents()
 
+def scrape_url(url, headers):
+    """
+    Scrapes a single URL and extracts its main content.
+
+    Args:
+        url (str): The URL to scrape.
+        headers (dict): HTTP headers to include in the request.
+
+    Returns:
+        Document: A Document object containing the scraped content, or None if extraction failed.
+    """
+    try:
+        response = make_request(url, headers=headers)
+        if response:
+            page_text = extract_main_content(url)
+            if page_text:
+                return Document(page_content=page_text, metadata={'source': url})
+            else:
+                logging.warning(f"No content extracted from {url}")
+                return None
+        else:
+            logging.warning(f"No response received for {url}")
+            return None
+    except Exception as e:
+        logging.error(f"Error scraping {url}: {e}")
+        return None
+
 def main():
     # Starting URL and depth for the crawler
     start_url =  "https://news.bahai.org/" #"https://www.radiozamaneh.com/" "https://universalhouseofjustice.bahai.org/" # "https://www.bahaisofiran.org/" # "https://news.persian-bahai.org/" #  "https://www.bahaisofiran.org/" "https://universalhouseofjustice.bahai.org/" # "https://bahaiworld.bahai.org/" # "https://www.bahaisofiran.org/" # "https://news.persian-bahai.org/" # "https://www.hra-news.org/" #  # "https://news.bahai.org/fa/"
