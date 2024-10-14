@@ -4,10 +4,14 @@ from urllib3.util.retry import Retry
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 from newspaper import Article
+import nltk
 import time
 import signal
 import logging
 from crawler_utils import fetch_and_parse_robots_txt, fetch_and_parse_sitemaps
+
+# Ensure NLTK's 'punkt' tokenizer is downloaded
+nltk.download('punkt', quiet=True)
 
 DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
 # Custom headers including a User-Agent
@@ -27,11 +31,11 @@ http = requests.Session()
 http.mount("https://", adapter)
 http.mount("http://", adapter)
 
-MAX_CRAWL_COUNT = 30  # Set the limit for the number of URLs to crawl
+MAX_CRAWL_COUNT = 30  # Set the limit for the number of URLs to crawl if = -1 don't set max
 crawl_count = 0
 visited = set()  # Keep track of visited URLs
 articles_content = []  # Store crawled articles' content
-delay = 2 # Initial delay in seconds
+delay = 1 # Initial delay in seconds
 
 # Configure logging
 logging.basicConfig(
@@ -123,16 +127,25 @@ def signal_handler(sig, frame):
 # Register the signal handler for Ctrl+C (SIGINT)
 signal.signal(signal.SIGINT, signal_handler)
 
-def extract_main_content(url):
+def download_and_extract_main_content(url):
     try:
         article = Article(url)
         article.download()
         article.parse()
         return article.text
     except Exception as e:
-        print(f"Failed to extract content from {url}: {e}")
+        logging.error(f"Failed to extract content from {url}: {e}")
         return ""
-
+    
+def extract_main_content(html_content, url):
+    try:
+        article = Article(url)
+        article.set_html(html_content)
+        article.parse()
+        return article.text
+    except Exception as e:
+        logging.error(f"Failed to extract content from {url}: {e}")
+        return ""
 
 def find_article_links(url):
     global delay
@@ -166,23 +179,24 @@ def find_article_links(url):
             continue # Skip external links
         # Avoid URL fragments and query parameters for simplicity
         link = link.split('#')[0].split('?')[0]
-        article_links.append(link)
+        if link not in visited:
+            article_links.append(link)
+        
     
     return article_links
 
-def crawl_website(start_url, depth):
-    max_depth = depth
+def crawl_website(start_url, depth, max_depth, headers, delay=1, robots_parser=None):
     global crawl_count
-    global delay
+
 
     def crawl(url, current_depth):
         global crawl_count
-        global delay
+
         # Stop crawling if the counter has reached the maximum allowed crawls
-        if current_depth > max_depth or url in visited or crawl_count >= MAX_CRAWL_COUNT:
+        if current_depth > max_depth or url in visited or (crawl_count >= MAX_CRAWL_COUNT and MAX_CRAWL_COUNT != -1):
             return
         
-        if not is_allowed(url, DEFAULT_USER_AGENT):
+        if robots_parser and not robots_parser.can_fetch(DEFAULT_USER_AGENT, url):
             logging.info(f"Skipping {url} due to robots.txt restrictions.")
             return
     
@@ -190,33 +204,41 @@ def crawl_website(start_url, depth):
         crawl_count += 1
         logging.info(f"Scraping: {url} (Depth: {current_depth}) (crawl_count: {crawl_count})")
         
-        # Get and store the main content of the article
-        content = extract_main_content(url)
-        if not content:
-            logging.warning(f"No content extracted from {url}.")
-            return
-        
-        if content:
-            articles_content.append({'url': url, 'content': content})
-        
-        # Find links to other articles and crawl them
-        links = find_article_links(url)
-        for link in links:
-            logging.info(f"Waiting for {delay} seconds before scraping {link}")
-            time.sleep(delay)
-            if crawl_count < MAX_CRAWL_COUNT:
-                crawl(link, current_depth + 1)
+        try:
+            response = make_request(url, headers=headers)
+            logging.debug(f"Received response for {url} with status code {response.status_code}")
+            # Decode content if necessary
+            if response.encoding is None:
+                response.encoding = 'utf-8' # Fallback encoding
+            html_content = response.text
 
-        logging.info(f"Total documents scraped: {len(articles_content)}")
+            page_text = extract_main_content(html_content, url)
+            if not page_text:
+                logging.warning(f"No content extracted from {url}.")
+                return
+            
+            if page_text:
+                articles_content.append({'url': url, 'content': page_text})
+            
+            # Find links to other articles and crawl them
+            links = find_article_links(url)
+            for link in links:
+                logging.info(f"Waiting for {delay} seconds before scraping {link}")
+                time.sleep(delay)
+                if crawl_count < MAX_CRAWL_COUNT:
+                    crawl(link, current_depth + 1)
+        except Exception as e:
+            logging.error(f"Failed to retrieve {url}: {e}")
+            return
             
     
     # Start crawling from the start URL
-    crawl(start_url, 0)
+    crawl(start_url, depth)
     
     # After finishing the crawl, print all crawled URLs
-    print_crawled_contents()
+    # print_crawled_contents()
 
-def scrape_url(url, headers):
+def scrape_url(url, headers, delay):
     """
     Scrapes a single URL and extracts its main content.
 
@@ -227,18 +249,29 @@ def scrape_url(url, headers):
     Returns:
         Document: A Document object containing the scraped content, or None if extraction failed.
     """
+    logging.info(f"Preparing to scrape URL: {url}")
+
+    # Respect the delay between requests
+    logging.debug(f"Sleeping for {delay} seconds before making the request to {url}")
+    time.sleep(delay)
+
     try:
         response = make_request(url, headers=headers)
-        if response:
-            page_text = extract_main_content(url)
-            if page_text:
-                return Document(page_content=page_text, metadata={'source': url})
-            else:
-                logging.warning(f"No content extracted from {url}")
-                return None
-        else:
-            logging.warning(f"No response received for {url}")
+        logging.debug(f"Received response for {url} with status code {response.status_code}")
+        
+        # Decode content if necessary
+        if response.encoding is None:
+            response.encoding = 'utf-8' # Fallback encoding
+        html_content = response.text
+
+        # Parse and extract the main content using newspaper3k with the fetched HTML
+        page_text = extract_main_content(html_content, url)
+        if not page_text:
+            logging.warning(f"No content extracted from {url}. Skipping.")
             return None
+        logging.info(f"Successfully scraped URL: {url}")
+        return {'url': url, 'content': page_text}
+
     except Exception as e:
         logging.error(f"Error scraping {url}: {e}")
         return None
@@ -259,7 +292,8 @@ def main():
     if not sitemap_urls:
         # If no sitemap URLs found, you might decide to proceed with recursive crawling
         logging.info(f"No sitemap URLs found for {base_url}. Proceeding with recursive crawling.")
-        crawl_website(start_url, max_depth)
+        crawl_website(start_url, 0, max_depth, headers, delay, rp)
+        return
 
     # Fetch and parse sitemaps to get URLs to crawl
     urls_to_crawl = fetch_and_parse_sitemaps(sitemap_urls, DEFAULT_USER_AGENT)
@@ -268,10 +302,10 @@ def main():
     for url in urls_to_crawl:
         # Check if URL is allowed by robots.txt
         if rp is None or rp.can_fetch(DEFAULT_USER_AGENT, url):
-            time.sleep(delay)
-            articles_content = scrape_url(url, headers, delay)
+            doc = scrape_url(url, headers, delay)
+            articles_content.append(doc)
 
-    
+    logging.info(f"Total documents scraped: {len(articles_content)}")
 
     if not articles_content:
         logging.error("No articles were scraped. Exiting.")
