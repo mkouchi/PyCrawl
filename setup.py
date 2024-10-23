@@ -16,6 +16,7 @@ setup(
         'beautifulsoup4',
         'newspaper3k',
         'lxml',
+        'lxml_html_clean',
         'nltk',
     ],
     entry_points={
