@@ -3,7 +3,7 @@ from newspaper import Article
 import nltk
 
 # Ensure necessary NLTK data is downloaded (Natural Language Toolkit library in Python)
-nltk.download('punkt', quiet=True)
+nltk.download('punkt_tab', quiet=True)
 
 def extract_main_content(url):
     """
