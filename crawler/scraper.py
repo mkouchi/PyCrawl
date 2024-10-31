@@ -1,5 +1,7 @@
 from crawler.config import MIN_DELAY, MAX_CRAWL_COUNT
+from requester import make_request
 import logging
+import time
 from urllib.parse import urljoin, urlparse
 from urllib.robotparser import RobotFileParser
 
@@ -28,6 +30,44 @@ def is_allowed(url, user_agent='*'):
         # If robots.txt cannot be fetched, assume allowed
         return True
     
+def scrape_url(url, headers, delay):
+    """
+    Scrapes a single URL and extracts its main content.
+
+    Args:
+        url (str): The URL to scrape.
+        headers (dict): HTTP headers to include in the request.
+
+    Returns:
+        Document: A Document object containing the scraped content, or None if extraction failed.
+    """
+    logging.info(f"Preparing to scrape URL: {url}")
+
+    # Respect the delay between requests
+    logging.debug(f"Sleeping for {delay} seconds before making the request to {url}")
+    time.sleep(delay)
+
+    try:
+        response = make_request(url, headers=headers)
+        logging.debug(f"Received response for {url} with status code {response.status_code}")
+        
+        # Decode content if necessary
+        if response.encoding is None:
+            response.encoding = 'utf-8' # Fallback encoding
+        html_content = response.text
+
+        # Parse and extract the main content using newspaper3k with the fetched HTML
+        page_text = extract_main_content(html_content, url)
+        if not page_text:
+            logging.warning(f"No content extracted from {url}. Skipping.")
+            return None
+        logging.info(f"Successfully scraped URL: {url}")
+        return {'url': url, 'content': page_text}
+
+    except Exception as e:
+        logging.error(f"Error scraping {url}: {e}")
+        return None
+
 def crawl_website(start_url, depth, max_depth, headers, visited=None, delay=MIN_DELAY):
     """
     Recursively scrapes a website starting from the given URL.
