@@ -5,7 +5,7 @@ import nltk
 # Ensure necessary NLTK data is downloaded (Natural Language Toolkit library in Python)
 nltk.download('punkt_tab', quiet=True)
 
-def extract_main_content(url):
+def extract_main_content(html_content, url):
     """
     Extracts the main textual content from a webpage using newspaper3k.
 
@@ -17,7 +17,7 @@ def extract_main_content(url):
     """
     try:
         article = Article(url)
-        article.download()
+        article.set_html(html_content)
         article.parse()
         # Optional: Perform NLP tasks
         # article.nlp()
