@@ -2,23 +2,46 @@ import logging
 import os
 from crawler.config import LOG_FILE, LOG_LEVEL, LOG_FORMAT, LOG_DATE_FORMAT
 
+DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
+# Custom headers including a User-Agent
+headers = {
+    'User-Agent': DEFAULT_USER_AGENT
+}
+
+def get_scraped_filename(start_url):
+    parsed_start_url = urlparse(start_url)
+    filename = f"{parsed_start_url.netloc}_scraped_data.json"
+    return filename
+
 def setup_logging():
     """
     Sets up the logging configuration for the crawler.
+    Logs to both a file and the console.
     """
-    logging.basicConfig(
-        filename=LOG_FILE,
-        filemode='a',
-        format=LOG_FORMAT,
-        datefmt=LOG_DATE_FORMAT,
-        level=getattr(logging, LOG_LEVEL.upper(), logging.INFO)
-    )
-    # Also log to console
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(getattr(logging, LOG_LEVEL.upper(), logging.INFO))
-    console_formatter = logging.Formatter(LOG_FORMAT, datefmt=LOG_DATE_FORMAT)
-    console_handler.setFormatter(console_formatter)
-    logging.getLogger('').addHandler(console_handler)
+    # Create log directory if it doesn't exist
+    log_dir = os.path.dirname(LOG_FILE)
+    if log_dir and not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    
+    # Create a custom logger
+    logger = logging.getLogger()
+    logger.setLevel(getattr(logging, LOG_LEVEL.upper(), logging.INFO))
+    
+    # Prevent adding multiple handlers if setup_logging is called multiple times
+    if not logger.handlers:
+        # File handler
+        file_handler = logging.FileHandler(LOG_FILE, mode='a')
+        file_handler.setLevel(getattr(logging, LOG_LEVEL.upper(), logging.INFO))
+        file_formatter = logging.Formatter(LOG_FORMAT, datefmt=LOG_DATE_FORMAT)
+        file_handler.setFormatter(file_formatter)
+        logger.addHandler(file_handler)
+        
+        # Console handler
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(getattr(logging, LOG_LEVEL.upper(), logging.INFO))
+        console_formatter = logging.Formatter(LOG_FORMAT, datefmt=LOG_DATE_FORMAT)
+        console_handler.setFormatter(console_formatter)
+        logger.addHandler(console_handler)
 
 def create_directories():
     """
@@ -68,17 +91,26 @@ def load_json(filepath):
     with open(filepath, 'r', encoding='utf-8') as file:
         return json.load(file)
 
-def save_json(data, filepath):
-    """
-    Saves data as JSON to a file.
 
+def save_json(data, start_url):
+    """
+    Saves the given data to a JSON file at the specified filepath.
+    
     Args:
-        data (dict): The data to save.
+        data (dict or list): The data to save.
         filepath (str): The path to the file where data will be saved.
     """
-    import json
+    filename = get_scraped_filename(start_url)
+    # Ensure the parent directories exist
+    filepath = os.path.join(OUTPUT_DIR, filename)
+    parent_dir = os.path.dirname(filepath)
+    if parent_dir:
+        os.makedirs(parent_dir, exist_ok=True)
+
     with open(filepath, 'w', encoding='utf-8') as file:
         json.dump(data, file, ensure_ascii=False, indent=4)
+
+    logging.info(f"Scraped data has been saved to {filename}")
 
 def get_timestamp():
     """
