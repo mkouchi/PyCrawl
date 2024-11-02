@@ -121,3 +121,17 @@ def get_timestamp():
     """
     from datetime import datetime
     return datetime.now().strftime('%Y%m%d_%H%M%S')
+
+def print_crawled_urls(articles):
+    # Print all visited URLs at the end
+    print("\nCrawled URLs:")
+    for idx, url in enumerate(articles):
+        print(f"{idx + 1}: {url}")
+
+def print_crawled_contents(articles):
+
+    # Print or process the collected articles' content
+    for idx, article in enumerate(articles):
+        print(f"Article {idx + 1}: {article['url']}\n")
+        print(article['content'])
+        print("\n" + "="*80 + "\n")
