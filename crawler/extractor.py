@@ -25,3 +25,13 @@ def extract_main_content(html_content, url):
     except Exception as e:
         logging.error(f"Failed to extract content from {url}: {e}")
         return ""
+    
+def download_and_extract_main_content(url):
+    try:
+        article = Article(url)
+        article.download()
+        article.parse()
+        return article.text
+    except Exception as e:
+        logging.error(f"Failed to extract content from {url}: {e}")
+        return ""
