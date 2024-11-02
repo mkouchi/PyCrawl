@@ -1,5 +1,6 @@
 from crawler.config import MIN_DELAY, MAX_CRAWL_COUNT
-from requester import make_request
+from crawler.requester import make_request, find_article_links
+from crawler.extractor import extract_main_content 
 import logging
 import time
 from urllib.parse import urljoin, urlparse
@@ -122,6 +123,3 @@ def crawl_website(start_url, depth, max_depth, headers, visited=None, delay=MIN_
 
     # Start crawling from the start URL
     crawl(start_url, 0)
-
-    # After finishing the crawl, print all crawled URLs
-    print_crawled_contents()
