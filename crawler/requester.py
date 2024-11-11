@@ -28,7 +28,7 @@ def make_request(url, headers=headers, max_retries=MAX_RETRIES):
     logging.info(f"make_request {url} delay { delay }.")
     for attempt in range(1, max_retries + 1):
         try:
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, headers=headers, timeout=TIMEOUT)
             status_code = response.status_code
             if status_code == 200:
                 return response
@@ -47,6 +47,10 @@ def make_request(url, headers=headers, max_retries=MAX_RETRIES):
                     wait_time = delay * 2 ** (attempt - 1)
                     logging.info(f"No Retry-After header. Waiting for {wait_time} seconds before retrying.")
                     time.sleep(wait_time)
+            elif status_code == 404:
+                logging.error(f"Request failed for {url}: status_code: {status_code}")
+                max_retries = 1
+                break
             else:
                 # For other status codes, raise an error
                 response.raise_for_status()
