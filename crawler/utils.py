@@ -1,7 +1,7 @@
 import logging
 import json
 import os
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 from config import LOG_FILE, LOG_LEVEL, LOG_FORMAT, LOG_DATE_FORMAT, OUTPUT_DIR
 
 DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
@@ -123,6 +123,17 @@ def get_timestamp():
     """
     from datetime import datetime
     return datetime.now().strftime('%Y%m%d_%H%M%S')
+
+def is_persian_character(char):  
+    """Check if the character is a Persian character."""  
+    return '\u0600' <= char <= '\u06FF' 
+
+def convert_persian_url(url):  
+    """Convert a URL containing Persian characters to a valid URL."""  
+    logging.info(f"Converting url containing Persian characters to a valid URL")
+    # It replaces spaces with %20 and other non-ASCII characters with their corresponding percent-encoded values.
+    encoded_url = quote(url, safe='/')  # Encode, keeping '/' unencoded  
+    return encoded_url 
 
 def print_crawled_urls(articles):
     # Print all visited URLs at the end
