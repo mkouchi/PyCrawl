@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 import time
 import logging
-from crawler.config import MAX_RETRIES, TIMEOUT, MIN_DELAY, MAX_DELAY, headers
+from config import MAX_RETRIES, TIMEOUT, MIN_DELAY, MAX_DELAY, headers
 from requests.exceptions import RequestException, HTTPError
 from email.utils import parsedate_to_datetime
 from datetime import datetime
@@ -80,8 +80,8 @@ def parse_retry_after(retry_after, delay, attempt):
             wait_time = delay * 2 ** (attempt - 1)
     return wait_time
 
-def find_article_links(url, visited):
-    global delay
+def find_article_links(url, visited, delay):
+    
     # Fetch page to extract links
     try:
         # Send a GET request to the URL 
@@ -92,8 +92,8 @@ def find_article_links(url, visited):
     except requests.exceptions.HTTPError as e:
         logging.error(f"Failed to retrieve {url}: {e}")
         # Increase delay after failed request
-        delay = min(60, delay * 2)
-        return []
+        delay = min(MAX_DELAY, delay * 2)
+        return [], delay
     
     # Parse the HTML content of the page
     soup = BeautifulSoup(response.content, 'html.parser')
@@ -115,4 +115,4 @@ def find_article_links(url, visited):
         if link not in visited:
             article_links.append(link)
         
-    return article_links
+    return article_links, delay
