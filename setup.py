@@ -6,7 +6,7 @@ nltk.download('punkt', quiet=True)
 setup(
     name='PyCrawl',
     version='0.1.0',
-    description='A python web crawler for scraping websites',
+    description='A Python web crawler for scraping websites',
     author='M.Kouchi',
     author_email='kouchi.mohammad@gmail.com',
     url='https://github.com/mkouchi/PyCrawl',
