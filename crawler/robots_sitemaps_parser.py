@@ -1,4 +1,4 @@
-from crawler.config import DEFAULT_USER_AGENT, MAX_DEPTH
+from config import DEFAULT_USER_AGENT, MAX_DEPTH
 import logging
 from urllib.parse import urljoin, urlparse
 from urllib.robotparser import RobotFileParser
