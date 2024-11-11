@@ -19,9 +19,18 @@ def extract_main_content(html_content, url):
         article = Article(url)
         article.set_html(html_content)
         article.parse()
+        """ article.title
+        article.publish_date
+        article.authors
+        article.top_image
+        article.movies
         # Optional: Perform NLP tasks
-        # article.nlp()
+        article.nlp()
+        article.keywords
+        article.summary """
         return article.text
+    except ImportError as ie:
+        logging.error(f"extract_main_content, ImportError: {ie}: {ie}")
     except Exception as e:
         logging.error(f"Failed to extract content from {url}: {e}")
         return ""
