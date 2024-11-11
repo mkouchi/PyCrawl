@@ -21,6 +21,7 @@ LOG_DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 MAX_RETRIES = 5
 TIMEOUT = 15
 MIN_DELAY = 2
+# Starting depth for the crawler
 MAX_DEPTH = 3
 MAX_DELAY = 30
 
