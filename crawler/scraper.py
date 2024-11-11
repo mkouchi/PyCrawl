@@ -1,4 +1,5 @@
 from config import DEFAULT_USER_AGENT, MAX_DEPTH, MIN_DELAY, MAX_CRAWL_COUNT, headers
+from utils import convert_persian_url, is_persian_character
 from requester import make_request, find_article_links
 from extractor import extract_main_content 
 import logging
@@ -42,6 +43,11 @@ def scrape_url(url, headers=headers, delay=MIN_DELAY):
     Returns:
         Document: A Document object containing the scraped content, or None if extraction failed.
     """
+
+    # Encode URL if it contains Persian characters
+    if any(is_persian_character(char) for char in url):
+        url = convert_persian_url(url)
+        
     logging.info(f"Preparing to scrape URL: {url}")
 
     # Respect the delay between requests
