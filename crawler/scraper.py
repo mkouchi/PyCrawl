@@ -1,4 +1,4 @@
-from crawler.config import MIN_DELAY, MAX_CRAWL_COUNT
+from crawler.config import MAX_DEPTH, MIN_DELAY, MAX_CRAWL_COUNT, headers
 from crawler.requester import make_request, find_article_links
 from crawler.extractor import extract_main_content 
 import logging
@@ -31,7 +31,7 @@ def is_allowed(url, user_agent='*'):
         # If robots.txt cannot be fetched, assume allowed
         return True
     
-def scrape_url(url, headers, delay):
+def scrape_url(url, headers=headers, delay=MIN_DELAY):
     """
     Scrapes a single URL and extracts its main content.
 
@@ -69,7 +69,7 @@ def scrape_url(url, headers, delay):
         logging.error(f"Error scraping {url}: {e}")
         return None
 
-def crawl_website(start_url, depth, max_depth, headers, visited=None, delay=MIN_DELAY):
+def crawl_website(start_url, depth, max_depth=MAX_DEPTH, headers=headers, visited=None, delay=MIN_DELAY):
     """
     Recursively scrapes a website starting from the given URL.
 
