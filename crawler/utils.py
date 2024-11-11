@@ -1,6 +1,8 @@
 import logging
+import json
 import os
-from crawler.config import LOG_FILE, LOG_LEVEL, LOG_FORMAT, LOG_DATE_FORMAT
+from urllib.parse import urlparse
+from crawler.config import LOG_FILE, LOG_LEVEL, LOG_FORMAT, LOG_DATE_FORMAT, OUTPUT_DIR
 
 DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
 # Custom headers including a User-Agent
@@ -87,7 +89,7 @@ def load_json(filepath):
     Returns:
         dict: The loaded JSON data.
     """
-    import json
+    
     with open(filepath, 'r', encoding='utf-8') as file:
         return json.load(file)
 
