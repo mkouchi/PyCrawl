@@ -1,11 +1,9 @@
-from crawler.config import DEFAULT_USER_AGENT
-import os
+from crawler.config import DEFAULT_USER_AGENT, MAX_DEPTH
 import logging
-import json
 from urllib.parse import urljoin, urlparse
 from urllib.robotparser import RobotFileParser
 import requests
-from xml.etree import ElementTree
+from xml.etree import ElementTree as ET
 
 def fetch_and_parse_robots_txt(base_url, user_agent=DEFAULT_USER_AGENT):
     """
@@ -51,8 +49,6 @@ def is_sitemap_index(content):
     Returns:
         bool: True if it's a sitemap index, False otherwise.
     """
-    from xml.etree import ElementTree as ET
-
     try:
         root = ET.fromstring(content)
         return root.tag.endswith('sitemapindex')
@@ -69,7 +65,6 @@ def parse_sitemap_index(sitemap_index_content):
     Returns:
         list: A list of sitemap URLs.
     """
-    from xml.etree import ElementTree as ET
 
     sitemap_urls = []
     try:
@@ -95,7 +90,6 @@ def parse_sitemap(sitemap_content):
     Returns:
         list: A list of URLs to crawl.
     """
-    from xml.etree import ElementTree as ET
 
     urls = []
     try:
@@ -112,7 +106,7 @@ def parse_sitemap(sitemap_content):
 
     return urls
 
-def fetch_and_parse_sitemaps(sitemap_urls, user_agent, max_depth=3, current_depth=0):
+def fetch_and_parse_sitemaps(sitemap_urls, user_agent=DEFAULT_USER_AGENT, max_depth=MAX_DEPTH, current_depth=0):
     """
     Recursively fetches and parses sitemaps and sitemap indexes.
 
