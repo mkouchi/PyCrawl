@@ -30,7 +30,7 @@ def main():
     create_directories()
 
     # Get current timestamp
-    timestamp = get_timestamp()
+    # timestamp = get_timestamp()
 
     crawl_count = 0
     # Starting URL and depth for the crawler

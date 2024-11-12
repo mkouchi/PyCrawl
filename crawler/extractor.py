@@ -19,7 +19,8 @@ def extract_main_content(html_content, url):
         article = Article(url)
         article.set_html(html_content)
         article.parse()
-        """ article.title
+        """ For better performance, these fields should be extracted in a background job(service) for processing scraped data 
+        article.title
         article.publish_date
         article.authors
         article.top_image
